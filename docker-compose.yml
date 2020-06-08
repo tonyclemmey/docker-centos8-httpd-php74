@@ -1,0 +1,43 @@
+version: '3.3'
+volumes:
+  craftcms-data: null
+  mariadb-data: null
+  redis-data: null
+  craftcms-logs: null
+services:
+  web:
+    build: .
+    # CentOS8 systemd privilege mode (https://developers.redhat.com/blog/2014/05/05/running-systemd-within-docker-container/)
+    privileged: true
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - 'craftcms-logs:/var/log'
+      - 'craftcms-data:/var/www/web/uploads'
+      - '/sys/fs/cgroup:/sys/fs/cgroup:ro'
+    links:
+      - mariadb
+      - redis
+    environment:
+      LANG: C.UTF-8
+      REDIS_HOST: redis
+      REDIS_PORT_6379_TCP: 'tcp://redis:6379'
+      DB_HOST: mariadb
+      DB_NAME: example
+      DB_PORT: 3306
+      DB_USER: user
+      DB_PASS: password
+  mariadb:
+    image: 'mariadb:10.4.12'
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: example
+    volumes:
+      - 'mariadb-data:/var/lib/mysql/data'
+  redis:
+    image: 'redis:5.0.8-alpine'
+    volumes:
+      - 'redis-data:/data'
