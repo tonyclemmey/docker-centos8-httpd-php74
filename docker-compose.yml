@@ -7,7 +7,6 @@ volumes:
 services:
   web:
     build: .
-    # CentOS8 systemd privilege mode (https://developers.redhat.com/blog/2014/05/05/running-systemd-within-docker-container/)
     privileged: true
     ports:
       - '80:80'

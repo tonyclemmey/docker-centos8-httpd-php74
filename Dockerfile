@@ -24,6 +24,10 @@ RUN if getent group apache ; then groupdel apache; fi && \
     useradd -l -u ${USER_ID} -g apache apache && \
     install -d -m 0755 -o apache -g apache /home/apache
 
+# Set the domain
+ARG URL=mysite.test
+ENV DOMAIN_URL $URL
+
 # Install 3rd party repos, httpd ffmpeg & remi php
 RUN yum update -y && \
  	dnf install epel-release dnf-utils nano -y && \
@@ -31,21 +35,20 @@ RUN yum update -y && \
 	dnf install --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm -y && \
 	dnf install http://rpmfind.net/linux/epel/7/x86_64/Packages/s/SDL2-2.0.10-1.el7.x86_64.rpm -y && \
 	dnf config-manager --set-enabled PowerTools && \
-	dnf install httpd httpd-tools ffmpeg -y && \
-	# Fix SSL (Temp)
-	dnf remove mod_ssl -y && \
+	dnf install httpd httpd-tools mod_ssl ffmpeg -y && \
 	dnf module enable php:remi-7.4 -y && \
 	systemctl enable httpd && \
 	dnf clean all
 
 # Install php extentions
 RUN dnf install -y php php-bcmath php-cli php-common php-mbstring php-mcrypt \
-	php-mysqlnd php-gd php-dom php-pecl-imagick php-pear php-intl php-ldap && \
+	php-mysqlnd php-gd php-dom php-pecl-imagick php-pear php-intl php-ldap php-zip && \
     dnf clean all
 
-# Update Apache / MPM Configuration
+# Update Apache / MPM Configuration & Php ini
 COPY ./00-mpm.conf /etc/httpd/conf.modules.d/00-mpm.conf
 COPY ./httpd.conf /etc/httpd/conf/httpd.conf
+COPY ./php.ini /etc/php.ini
 
 # Creat missing Apache DIR and set proper permissions
 RUN mkdir -p /var/log/httpd && \
@@ -58,7 +61,14 @@ RUN rm -rf /var/www/html && \
 # CMS requirements check script
 COPY ./check /var/www/web/check
 
-# DocumentRoot Permissions
+# Create SSL / SimpleSAML certs
+RUN openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj \
+    "/C=GB/ST=state/L=city/O=organization/CN=$DOMAIN_URL" \
+    -keyout ./$DOMAIN_URL.key -out ./$DOMAIN_URL.crt && \
+	cp ./$DOMAIN_URL.crt /etc/pki/tls/certs/$DOMAIN_URL.crt && \
+	cp ./$DOMAIN_URL.key /etc/pki/tls/certs/$DOMAIN_URL.key
+
+# Set Permissions
 RUN chown -Rf apache:apache /var/www
 
 EXPOSE 80
