@@ -1,4 +1,7 @@
 FROM centos:8
+LABEL maintainer="Tony Clemmey <tonyclemmey@gmail.com>" \
+	  Description="Based on CentOS8, Apache2.4 and PHP7.4" \
+	  Version="1.0"
 # CentOS8 systemd integration 
 # https://developers.redhat.com/blog/2014/05/05/running-systemd-within-docker-container/
 # https://developers.redhat.com/blog/2016/09/13/running-systemd-in-a-non-privileged-container/
@@ -43,8 +46,6 @@ RUN dnf install -y php php-bcmath php-cli php-common php-mbstring php-mcrypt \
 # Update Apache / MPM Configuration
 COPY ./00-mpm.conf /etc/httpd/conf.modules.d/00-mpm.conf
 COPY ./httpd.conf /etc/httpd/conf/httpd.conf
-# RUN sed -E -i -e '/<Directory "\/var\/www\/html">/,/<\/Directory>/s/AllowOverride None/AllowOverride All/' /etc/httpd/conf/httpd.conf
-# RUN sed -E -i -e 's/DirectoryIndex (.*)$/DirectoryIndex index.php \1/g' /etc/httpd/conf/httpd.conf
 
 # Creat missing Apache DIR and set proper permissions
 RUN mkdir -p /var/log/httpd && \
